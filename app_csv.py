@@ -473,7 +473,7 @@ if choice:
 
             # Use a regular expression to find the name after "The recommended player: "
             pattern = r"The recommended player:\s*([^:]+)"
-
+            ultimo_nome = None
             # find the correspondence in the entire text
             matches = re.findall(pattern, result.text, re.IGNORECASE)
             if matches:
@@ -484,130 +484,134 @@ if choice:
     ####### Analytics of the recommended player ##############
     if form:  
         if matches:
-            ultimo_nome = matches[0].rstrip('.').strip('*')
+            ultimo_nome = matches[0].rstrip('.').strip('*').strip()
     
-    # Check if the player exists in the DataFrame
-            player_data = df_player[df_player['Player'] == ultimo_nome]
+            # Normalize player names in the DataFrame
+            df_player['NormalizedPlayer'] = df_player['Player'].apply(lambda x: x.strip().lower())
+            normalized_ultimo_nome = ultimo_nome.lower()
+    
+            # Check if the player exists in the DataFrame
+            player_data = df_player[df_player['NormalizedPlayer'] == normalized_ultimo_nome]
     
             if not player_data.empty:
                 st.subheader(f"🌟 The features of the recommended player: {ultimo_nome}")
         
-        try:
-            # Get the squad name safely
-            squad = player_data['Squad'].iloc[0] if 'Squad' in player_data.columns else "Unknown Team"
-            
-            # Construct the search query
-            search_query = f"{ultimo_nome} {squad} 2023"
-            
-            # Get the image URL
-            image_urls = bing_image_urls(search_query, limit=1)
-            
-            if image_urls:
-                url_player = image_urls[0]
-            else:
-                url_player = "https://example.com/placeholder-image.jpg"  # Use a placeholder image URL
-            
-            with st.expander("Selected Player", expanded=True):
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.subheader(ultimo_nome)
-                    st.image(url_player, width=356)
-                
-                with col2:
-                    st.caption("📄 Information of Player")
-                    col_1, col_2, col_3 = st.columns(3)
+                try:
+                    # Get the squad name safely
+                    squad = player_data['Squad'].iloc[0] if 'Squad' in player_data.columns and not player_data.empty else "Unknown Team"
                     
-                    # Safely display player information
-                    def safe_metric(label, column):
-                        value = player_data[column].iloc[0] if column in player_data.columns else "N/A"
-                        return st.metric(label, value, None)
+                    # Construct the search query
+                    search_query = f"{ultimo_nome} {squad} 2023"
                     
-                    with col_1:
-                        safe_metric("Nation", "Nation")
-                        safe_metric("Position", "Pos")
+                    # Get the image URL
+                    image_urls = bing_image_urls(search_query, limit=1)
                     
-                    with col_2:
-                        safe_metric("Born", "Born")
-                        safe_metric("Match Played", "Playing Time MP")
+                    if image_urls:
+                        url_player = image_urls[0]
+                    else:
+                        url_player = "https://example.com/placeholder-image.jpg"  # Use a placeholder image URL
                     
-                    with col_3:
-                        safe_metric("Age", "Age")
-                    
-                    safe_metric(f"🏆 League: {player_data['Comp'].iloc[0] if 'Comp' in player_data.columns else 'Unknown'}", "Squad")
-                
-                # Add the code for col3 here, using the same safe_metric approach
-                with col3:
-                        st.caption("⚽ Information target of Player")
-                        # GK
-                        if df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "GK":
+                    with st.expander("Selected Player", expanded=True):
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.subheader(ultimo_nome)
+                            st.image(url_player, width=356)
+                        
+                        with col2:
+                            st.caption("📄 Information of Player")
+                            col_1, col_2, col_3 = st.columns(3)
+                            
+                            # Safely display player information
+                            def safe_metric(label, column):
+                                value = player_data[column].iloc[0] if column in player_data.columns and not player_data.empty else "N/A"
+                                return st.metric(label, value, None)
+                            
+                            with col_1:
+                                safe_metric("Nation", "Nation")
+                                safe_metric("Position", "Pos")
+                            
+                            with col_2:
+                                safe_metric("Born", "Born")
+                                safe_metric("Match Played", "Playing Time MP")
+                            
+                            with col_3:
+                                safe_metric("Age", "Age")
+                            
+                            safe_metric(f"🏆 League: {player_data['Comp'].iloc[0] if 'Comp' in player_data.columns and not player_data.empty else 'Unknown'}", "Squad")
+                        
+                        # Add the code for col3 here, using the same safe_metric approach
+                        with col3:
+                            st.caption("⚽ Information target of Player")
+                            # GK
+                            if df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "GK":
                                 col_1, col_2 = st.columns(2)
 
                                 with col_1:
-                                    st.metric("Saves", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance Saves'].iloc[0], None, help="Total number of saves made by the goalkeeper.")
-                                    st.metric("Clean Sheet", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance CS'].iloc[0], None, help="Total number of clean sheets (matches without conceding goals) by the goalkeeper.")
+                                    st.metric("Saves", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance Saves'].iloc[0], None, help="Total number of saves made by the goalkeeper.")
+                                    st.metric("Clean Sheet", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance CS'].iloc[0], None, help="Total number of clean sheets (matches without conceding goals) by the goalkeeper.")
 
                                 with col_2:
-                                    st.metric("Goals Against", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance GA'].iloc[0], None, help="Total number of goals conceded by the goalkeeper.")
-                                    st.metric("ShoTA", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance SoTA'].iloc[0], None, help="Total number of shots on target faced by the goalkeeper.")
+                                    st.metric("Goals Against", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance GA'].iloc[0], None, help="Total number of goals conceded by the goalkeeper.")
+                                    st.metric("ShoTA", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance SoTA'].iloc[0], None, help="Total number of shots on target faced by the goalkeeper.")
 
-                        # DF
-                        if df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "DF" or df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "DF,MF" or df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "DF,FW":
-                            col_1, col_2, col_3 = st.columns(3)
+                            # DF
+                            if df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "DF" or df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "DF,MF" or df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "DF,FW":
+                                col_1, col_2, col_3 = st.columns(3)
 
-                            with col_1:
-                                st.metric("Assist", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance Ast'].iloc[0], None, help="Total number of assists provided by the defender.")
-                                st.metric("Goals", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance Gls'].iloc[0], None, help="Total number of goals scored by the defender.")
+                                with col_1:
+                                    st.metric("Assist", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance Ast'].iloc[0], None, help="Total number of assists provided by the defender.")
+                                    st.metric("Goals", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance Gls'].iloc[0], None, help="Total number of goals scored by the defender.")
 
-                            with col_2:
-                                st.metric("Aerial Duel", df_player.loc[df_player['Player'] == ultimo_nome, 'Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the defender.")
-                                st.metric("Tackle", df_player.loc[df_player['Player'] == ultimo_nome, 'Tackles TklW'].iloc[0], None, help="Total number of successful tackles made by the defender in 2022/2023.")
+                                with col_2:
+                                    st.metric("Aerial Duel", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the defender.")
+                                    st.metric("Tackle", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Tackles TklW'].iloc[0], None, help="Total number of successful tackles made by the defender in 2022/2023.")
 
-                            with col_3:
-                                st.metric("Interception", df_player.loc[df_player['Player'] == ultimo_nome, 'Int'].iloc[0], None, help="Total number of interceptions made by the defender.")
-                                st.metric("Key Passage", df_player.loc[df_player['Player'] == ultimo_nome, 'KP'].iloc[0], None, help="Total number of key passes made by the defender.")
+                                with col_3:
+                                    st.metric("Interception", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Int'].iloc[0], None, help="Total number of interceptions made by the defender.")
+                                    st.metric("Key Passage", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'KP'].iloc[0], None, help="Total number of key passes made by the defender.")
 
-                        # MF
-                        if df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "MF" or df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "MF,DF" or df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "MF,FW":
-                            col_1, col_2, col_3 = st.columns(3)
+                            # MF
+                            if df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "MF" or df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "MF,DF" or df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "MF,FW":
+                                col_1, col_2, col_3 = st.columns(3)
 
-                            with col_1:
-                                st.metric("Assist", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance Ast'].iloc[0], None, help="Total number of assists provided by the player.")
-                                st.metric("Goals", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance Gls'].iloc[0], None, help="Total number of goals scored by the player.")
-                                st.metric("Aerial Duel", df_player.loc[df_player['Player'] == ultimo_nome, 'Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the player.")
+                                with col_1:
+                                    st.metric("Assist", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance Ast'].iloc[0], None, help="Total number of assists provided by the player.")
+                                    st.metric("Goals", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance Gls'].iloc[0], None, help="Total number of goals scored by the player.")
+                                    st.metric("Aerial Duel", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the player.")
 
-                            with col_2:
-                                st.metric("GCA", df_player.loc[df_player['Player'] == ultimo_nome, 'GCA GCA'].iloc[0], None, help="Total number of goal-creating actions by the player.")
-                                st.metric("Progressive PrgP", df_player.loc[df_player['Player'] == ultimo_nome, 'Progression PrgP'].iloc[0], None, help="Total number of progressive passes by the player.")
+                                with col_2:
+                                    st.metric("GCA", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'GCA GCA'].iloc[0], None, help="Total number of goal-creating actions by the player.")
+                                    st.metric("Progressive PrgP", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Progression PrgP'].iloc[0], None, help="Total number of progressive passes by the player.")
 
-                            with col_3:
-                                st.metric("SCA", df_player.loc[df_player['Player'] == ultimo_nome, 'SCA SCA'].iloc[0], None, help="Total number of shot-creating actions by the player.")
-                                st.metric("Key Passage", df_player.loc[df_player['Player'] == ultimo_nome, 'KP'].iloc[0], None, help="Total number of key passes by the player.")
+                                with col_3:
+                                    st.metric("SCA", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'SCA SCA'].iloc[0], None, help="Total number of shot-creating actions by the player.")
+                                    st.metric("Key Passage", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'KP'].iloc[0], None, help="Total number of key passes by the player.")
 
-                        # FW
-                        if df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "FW" or df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "FW,MF" or df_player.loc[df_player['Player'] == ultimo_nome, 'Pos'].iloc[0] == "FW,DF":
-                            col_1, col_2, col_3 = st.columns(3) 
+                            # FW
+                            if df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "FW" or df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "FW,MF" or df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Pos'].iloc[0] == "FW,DF":
+                                col_1, col_2, col_3 = st.columns(3) 
 
-                            with col_1:
-                                st.metric("Assist", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance Ast'].iloc[0], None, help="Total number of assists provided by the player.")
-                                st.metric("Goals", df_player.loc[df_player['Player'] == ultimo_nome, 'Performance Gls'].iloc[0], None, help="Total number of goals scored by the player.")
-                                st.metric("Aerial Duel", df_player.loc[df_player['Player'] == ultimo_nome, 'Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the player.")
+                                with col_1:
+                                    st.metric("Assist", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance Ast'].iloc[0], None, help="Total number of assists provided by the player.")
+                                    st.metric("Goals", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Performance Gls'].iloc[0], None, help="Total number of goals scored by the player.")
+                                    st.metric("Aerial Duel", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the player.")
 
-                            with col_2:
-                                st.metric("SCA", df_player.loc[df_player['Player'] == ultimo_nome, 'SCA SCA'].iloc[0], None, help="Total number of shot-creating actions by the player.")
-                                st.metric("xG", df_player.loc[df_player['Player'] == ultimo_nome, 'Expected xG'].iloc[0], None, help="Expected goals (xG) by the player.")
-                                st.metric("xAG", df_player.loc[df_player['Player'] == ultimo_nome, 'Expected xAG'].iloc[0], None, help="Expected assists (xAG) by the player.")
+                                with col_2:
+                                    st.metric("SCA", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'SCA SCA'].iloc[0], None, help="Total number of shot-creating actions by the player.")
+                                    st.metric("xG", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Expected xG'].iloc[0], None, help="Expected goals (xG) by the player.")
+                                    st.metric("xAG", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'Expected xAG'].iloc[0], None, help="Expected assists (xAG) by the player.")
 
-                            with col_3:
-                                st.metric("GCA", df_player.loc[df_player['Player'] == ultimo_nome, 'GCA GCA'].iloc[0], None, help="Total number of goal-creating actions by the player.")
-                                st.metric("Key Passage", df_player.loc[df_player['Player'] == ultimo_nome, 'KP'].iloc[0], None, help="Total number of key passes by the player.")
-        except Exception as e:
-            st.error(f"An error occurred while processing player data: {str(e)}")
-    else:
-        st.error(f"Player '{ultimo_nome}' not found in the database. Please ensure the AI recommends players from the provided similar players list.")
-        st.write("Available players:", ", ".join(similar_players_df['Player'].tolist()))
-else:
-    st.warning("No player recommendation found in the AI's response.")                    
+                                with col_3:
+                                    st.metric("GCA", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'GCA GCA'].iloc[0], None, help="Total number of goal-creating actions by the player.")
+                                    st.metric("Key Passage", df_player.loc[df_player['NormalizedPlayer'] == normalized_ultimo_nome, 'KP'].iloc[0], None, help="Total number of key passes by the player.")
+                except Exception as e:
+                    st.error(f"An error occurred while processing player data: {str(e)}")
+            else:
+                st.error(f"Player '{ultimo_nome}' not found in the database. Please ensure the AI recommends players from the provided similar players list.")
+                st.write("Available players:", ", ".join(similar_players_df['Player'].tolist()))
+        else:
+            st.warning("No player recommendation found in the AI's response.")                                        
 
 
     st.write(" ")
