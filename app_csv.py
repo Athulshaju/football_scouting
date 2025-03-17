@@ -300,6 +300,117 @@ if choice:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+    selected_similar_player = st.selectbox("Select a player to view stats:", similar_players_df['Player'].tolist())    
+    # ...existing code...
+
+   
+    if selected_similar_player:
+        st.subheader(f"Stats of {selected_similar_player}")
+        player_data = df_player[df_player['Player'] == selected_similar_player]
+
+        if not player_data.empty:
+            # Get the squad name safely
+            squad = player_data['Squad'].iloc[0] if 'Squad' in player_data.columns and not player_data.empty else "Unknown Team"
+            
+            # Construct the search query
+            search_query = f"{selected_similar_player} {squad} 2023"
+            
+            # Get the image URL
+            image_urls = bing_image_urls(search_query, limit=1)
+            
+            if image_urls:
+                url_player = image_urls[0]
+            else:
+                url_player = "https://example.com/placeholder-image.jpg"  # Use a placeholder image URL
+
+            with st.expander(f"Features of {selected_similar_player} - The data considered for analysis pertains to the period of 2023 - 2024.", expanded=True):
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.subheader(selected_similar_player)
+                    st.image(url_player, width=356)
+
+                with col2:
+                    st.caption("📄 Information of Player")
+                    col_1, col_2, col_3 = st.columns(3)
+
+                    with col_1:
+                        st.metric("Nation", player_data['Nation'].iloc[0], None)
+                        st.metric("Position", player_data['Pos'].iloc[0], None)
+
+                    with col_2:
+                        st.metric("Born", player_data['Born'].iloc[0], None)
+                        st.metric("Match Played", player_data['Playing Time MP'].iloc[0], None, help="In 2022/2023")
+
+                    with col_3:
+                        st.metric("Age", player_data['Age'].iloc[0], None)
+
+                    st.metric(f"🏆 League: {player_data['Comp'].iloc[0]}", player_data['Squad'].iloc[0], None)
+
+                with col3:
+                    st.caption("⚽ Information target of Player")
+                    # GK
+                    if player_data['Pos'].iloc[0] == "GK":
+                        col_1, col_2 = st.columns(2)
+
+                        with col_1:
+                            st.metric("Saves", player_data['Performance Saves'].iloc[0], None, help="Total number of saves made by the goalkeeper.")
+                            st.metric("Clean Sheet", player_data['Performance CS'].iloc[0], None, help="Total number of clean sheets (matches without conceding goals) by the goalkeeper.")
+
+                        with col_2:
+                            st.metric("Goals Against", player_data['Performance GA'].iloc[0], None, help="Total number of goals conceded by the goalkeeper.")
+                            st.metric("ShoTA", player_data['Performance SoTA'].iloc[0], None, help="Total number of shots on target faced by the goalkeeper.")
+
+                    # DF
+                    elif player_data['Pos'].iloc[0] in ["DF", "DF,MF", "DF,FW"]:
+                        col_1, col_2, col_3 = st.columns(3)
+
+                        with col_1:
+                            st.metric("Assist", player_data['Performance Ast'].iloc[0], None, help="Total number of assists provided by the defender.")
+                            st.metric("Goals", player_data['Performance Gls'].iloc[0], None, help="Total number of goals scored by the defender.")
+
+                        with col_2:
+                            st.metric("Aerial Duel", player_data['Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the defender.")
+                            st.metric("Tackle", player_data['Tackles TklW'].iloc[0], None, help="Total number of successful tackles made by the defender in 2022/2023.")
+
+                        with col_3:
+                            st.metric("Interception", player_data['Int'].iloc[0], None, help="Total number of interceptions made by the defender.")
+                            st.metric("Key Passage", player_data['KP'].iloc[0], None, help="Total number of key passes made by the defender.")
+
+                    # MF
+                    elif player_data['Pos'].iloc[0] in ["MF", "MF,DF", "MF,FW"]:
+                        col_1, col_2, col_3 = st.columns(3)
+
+                        with col_1:
+                            st.metric("Assist", player_data['Performance Ast'].iloc[0], None, help="Total number of assists provided by the player.")
+                            st.metric("Goals", player_data['Performance Gls'].iloc[0], None, help="Total number of goals scored by the player.")
+                            st.metric("Aerial Duel", player_data['Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the player.")
+
+                        with col_2:
+                            st.metric("GCA", player_data['GCA GCA'].iloc[0], None, help="Total number of goal-creating actions by the player.")
+                            st.metric("Progressive PrgP", player_data['Progression PrgP'].iloc[0], None, help="Total number of progressive passes by the player.")
+
+                        with col_3:
+                            st.metric("SCA", player_data['SCA SCA'].iloc[0], None, help="Total number of shot-creating actions by the player.")
+                            st.metric("Key Passage", player_data['KP'].iloc[0], None, help="Total number of key passes by the player.")
+
+                    # FW
+                    elif player_data['Pos'].iloc[0] in ["FW", "FW,MF", "FW,DF"]:
+                        col_1, col_2, col_3 = st.columns(3) 
+
+                        with col_1:
+                            st.metric("Assist", player_data['Performance Ast'].iloc[0], None, help="Total number of assists provided by the player.")
+                            st.metric("Goals", player_data['Performance Gls'].iloc[0], None, help="Total number of goals scored by the player.")
+                            st.metric("Aerial Duel", player_data['Aerial Duels Won'].iloc[0], None, help="Percentage of aerial duels won by the player.")
+
+                        with col_2:
+                            st.metric("SCA", player_data['SCA SCA'].iloc[0], None, help="Total number of shot-creating actions by the player.")
+                            st.metric("xG", player_data['Expected xG'].iloc[0], None, help="Expected goals (xG) by the player.")
+                            st.metric("xAG", player_data['Expected xAG'].iloc[0], None, help="Expected assists (xAG) by the player.")
+
+                        with col_3:
+                            st.metric("GCA", player_data['GCA GCA'].iloc[0], None, help="Total number of goal-creating actions by the player.")
+                            st.metric("Key Passage", player_data['KP'].iloc[0], None, help="Total number of key passes by the player.")
 
     ####################### Scouter AI Component ##################################
     
@@ -387,8 +498,7 @@ if choice:
     with col2:
 
         ######### Inside REPORT #####################
-        st.info('The text is generated by a Gemini artificial intelligence model. Please note that the accuracy and veracity of the content may vary. \
-            The primary goal is to provide general information and assistance in choosing a football player, but it is always recommended to verify and confirm any information from reliable sources.', icon="ℹ️")
+        
 
         if form:
             st.caption("Selected Options:")
