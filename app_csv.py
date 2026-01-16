@@ -496,8 +496,6 @@ if st.session_state.logged_in:
 
         ####################### Scouter AI Component ##################################
         
-        #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
-        #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
         
         dis = True
         st.header('⚽🕵️‍♂️ Scouter AI')
